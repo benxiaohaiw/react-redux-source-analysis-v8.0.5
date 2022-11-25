@@ -11,8 +11,9 @@ export interface ReactReduxContextValue<
   getServerState?: () => SS
 }
 
+// react redux context
 export const ReactReduxContext =
-  /*#__PURE__*/ createContext<ReactReduxContextValue>(null as any)
+  /*#__PURE__*/ createContext<ReactReduxContextValue>(null as any) // 直接就是一个createContext api执行后的结果 // +++
 
 export type ReactReduxContextInstance = typeof ReactReduxContext
 

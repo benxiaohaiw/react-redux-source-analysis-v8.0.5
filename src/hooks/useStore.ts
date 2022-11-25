@@ -16,20 +16,30 @@ export function createStoreHook<
   S = unknown,
   A extends BasicAction = AnyAction
   // @ts-ignore
->(context?: Context<ReactReduxContextValue<S, A>> = ReactReduxContext) {
+>(context?: Context<ReactReduxContextValue<S, A>> = ReactReduxContext) { // 要注意context的默认为ReactReduxContext！！！ // +++
+  // src/hooks/useReduxContext.ts下的useReduxContext
   const useReduxContext =
     // @ts-ignore
-    context === ReactReduxContext
-      ? useDefaultReduxContext
+    context === ReactReduxContext // 相等的
+      ? useDefaultReduxContext // +++
       : () => useContext(context)
+
+  // 返回一个函数 // +++
   return function useStore<
     State = S,
     Action extends BasicAction = A
     // @ts-ignore
   >() {
+    // 执行这个hook
     const { store } = useReduxContext()!
+    // Provider函数式组件中在Context.Provider传递的value对象
+    // store、subscription等属性
+    // 解构出来 // +++
+    // +++
+
     // @ts-ignore
     return store as Store<State, Action>
+    // 返回store对象 // +++
   }
 }
 
@@ -48,4 +58,5 @@ export function createStoreHook<
  *   return <div>{store.getState()}</div>
  * }
  */
-export const useStore = /*#__PURE__*/ createStoreHook()
+export const useStore = /*#__PURE__*/ createStoreHook() // 创建store hook
+// undefined -> ReactReduxContext作为参数context啦 ~

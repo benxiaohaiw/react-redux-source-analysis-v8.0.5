@@ -14,6 +14,7 @@ export type MapToProps<P extends AnyProps = AnyProps> = {
   dependsOnOwnProps?: boolean
 }
 
+// +++
 export function wrapMapToPropsConstant(
   // * Note:
   //  It seems that the dispatch argument
@@ -28,13 +29,17 @@ export function wrapMapToPropsConstant(
     | ActionCreatorsMapObject
     | ActionCreator<any>
 ) {
+  // 返回函数1
   return function initConstantSelector(dispatch: Dispatch) {
-    const constant = getConstant(dispatch)
+    const constant = getConstant(dispatch) // 获取常量 // 在src/connect/mapStateToProps.ts中传递的getConstant是一个() => ({})箭头函数 // +++
 
+    // 准备函数2
     function constantSelector() {
-      return constant
+      return constant // 返回常量 - 空对象
     }
-    constantSelector.dependsOnOwnProps = false
+    constantSelector.dependsOnOwnProps = false // 是一个false // +++
+
+    // 返回函数2
     return constantSelector
   }
 }
@@ -47,7 +52,9 @@ export function wrapMapToPropsConstant(
 // A length of zero is assumed to mean mapToProps is getting args via arguments or ...args and
 // therefore not reporting its length accurately..
 // TODO Can this get pulled out so that we can subscribe directly to the store if we don't need ownProps?
-export function getDependsOnOwnProps(mapToProps: MapToProps) {
+export function getDependsOnOwnProps(mapToProps: MapToProps) { // +++
+
+  // +++
   return mapToProps.dependsOnOwnProps
     ? Boolean(mapToProps.dependsOnOwnProps)
     : mapToProps.length !== 1
@@ -69,42 +76,64 @@ export function wrapMapToPropsFunc<P extends AnyProps = AnyProps>(
   mapToProps: MapToProps,
   methodName: string
 ) {
+
+  // 返回初始化代理选择器函数 // +++
   return function initProxySelector(
     dispatch: Dispatch,
     { displayName }: { displayName: string }
   ) {
+
+    // 准备proxy函数
     const proxy = function mapToPropsProxy(
       stateOrDispatch: StateOrDispatch,
       ownProps?: P
     ): MapToProps {
-      return proxy.dependsOnOwnProps
-        ? proxy.mapToProps(stateOrDispatch, ownProps)
+      return proxy.dependsOnOwnProps // 
+        ? proxy.mapToProps(stateOrDispatch, ownProps) // +++
         : proxy.mapToProps(stateOrDispatch, undefined)
     }
 
     // allow detectFactoryAndVerify to get ownProps
-    proxy.dependsOnOwnProps = true
+    proxy.dependsOnOwnProps = true // 标记为true // +++
 
+    // 在proxy函数上添加mapToProps属性为一个函数
     proxy.mapToProps = function detectFactoryAndVerify(
       stateOrDispatch: StateOrDispatch,
       ownProps?: P
     ): MapToProps {
-      proxy.mapToProps = mapToProps
+
+      proxy.mapToProps = mapToProps // 重新赋值为上面的参数mapToProps函数 // +++
+      
       proxy.dependsOnOwnProps = getDependsOnOwnProps(mapToProps)
+      /* 
+      export function getDependsOnOwnProps(mapToProps: MapToProps) { // +++
+
+        // +++
+        return mapToProps.dependsOnOwnProps
+          ? Boolean(mapToProps.dependsOnOwnProps) // 用户的函数上的dependsOnOwnProps属性
+          : mapToProps.length !== 1 // 则根据用户写的函数的参数是否不为1来去进行判断的 // +++
+      }
+      */
+
+      // 再次执行proxy函数 - 注意内部的mapToProps变为了上面传入的参数mapToProps了，也就是用户写的函数 // +++
       let props = proxy(stateOrDispatch, ownProps)
 
+      // 支持值是一个函数
       if (typeof props === 'function') {
-        proxy.mapToProps = props
+        proxy.mapToProps = props // 再次赋值
         proxy.dependsOnOwnProps = getDependsOnOwnProps(props)
+        // 再次执行proxy函数 // +++
         props = proxy(stateOrDispatch, ownProps)
       }
 
       if (process.env.NODE_ENV !== 'production')
         verifyPlainObject(props, displayName, methodName)
 
+      // 直接返回props值 // +++
       return props
     }
 
+    // 返回proxy函数
     return proxy
   }
 }

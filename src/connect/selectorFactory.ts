@@ -64,6 +64,7 @@ interface PureSelectorFactoryComparisonOptions<TStateProps, TOwnProps, State> {
   readonly areOwnPropsEqual: EqualityFn<TOwnProps>
 }
 
+// 纯最终属性选择器 // +++
 export function pureFinalPropsSelectorFactory<
   TStateProps,
   TOwnProps,
@@ -81,20 +82,34 @@ export function pureFinalPropsSelectorFactory<
     areStatePropsEqual,
   }: PureSelectorFactoryComparisonOptions<TStateProps, TOwnProps, State>
 ) {
-  let hasRunAtLeastOnce = false
+  // 还没有至少运行一次
+  let hasRunAtLeastOnce = false // +++
   let state: State
   let ownProps: TOwnProps
   let stateProps: TStateProps
   let dispatchProps: TDispatchProps
   let mergedProps: TMergedProps
 
-  function handleFirstCall(firstState: State, firstOwnProps: TOwnProps) {
+  // 处理第一次执行
+  function handleFirstCall(firstState: State, firstOwnProps: TOwnProps) { // store.getState(), /** 也就是可以说是connect()()最终返回的函数式组件ConnectFunction所接收的props对象中除了context, reactReduxForwardedRef之外的其余属性组成的对象 */
     state = firstState
     ownProps = firstOwnProps
+
+    // 一一执行函数
     stateProps = mapStateToProps(state, ownProps)
     dispatchProps = mapDispatchToProps(dispatch, ownProps)
+    
+    // 执行函数
     mergedProps = mergeProps(stateProps, dispatchProps, ownProps)
+
+    /* 
+    到这里其实就相当于执行的是用户写的这三个函数 - 那么得到状态属性、派发属性 - 产生【合并属性对象】 - 最终返回这个【合并属性对象】 // +++
+    */
+
+    // 标记
     hasRunAtLeastOnce = true
+
+    // 返回【合并属性对象】 // +++
     return mergedProps
   }
 
@@ -130,30 +145,42 @@ export function pureFinalPropsSelectorFactory<
     return mergedProps
   }
 
+  // 连续调用
   function handleSubsequentCalls(nextState: State, nextOwnProps: TOwnProps) {
-    const propsChanged = !areOwnPropsEqual(nextOwnProps, ownProps)
-    const stateChanged = !areStatesEqual(
+    // 属性是否有变化
+    const propsChanged = !areOwnPropsEqual(nextOwnProps, ownProps) // areOwnPropsEqual
+
+    // 状态是否有变化
+    const stateChanged = !areStatesEqual( // +++ areStatesEqual
       nextState,
       state,
       nextOwnProps,
       ownProps
     )
+
+    // 赋值替换最新的 // +++
     state = nextState
     ownProps = nextOwnProps
 
+    // 属性和状态都变化了
     if (propsChanged && stateChanged) return handleNewPropsAndNewState()
+    // 只有属性变化了
     if (propsChanged) return handleNewProps()
+    // 状态变化了
     if (stateChanged) return handleNewState()
+
+    // 没有变化则依然返回合并属性 // +++
     return mergedProps
   }
 
+  // 返回pureFinalPropsSelector函数
   return function pureFinalPropsSelector(
-    nextState: State,
-    nextOwnProps: TOwnProps
+    nextState: State, // store.getState() // +++
+    nextOwnProps: TOwnProps /** 也就是可以说是connect()()最终返回的函数式组件ConnectFunction所接收的props对象中除了context, reactReduxForwardedRef之外的其余属性组成的对象 */
   ) {
-    return hasRunAtLeastOnce
-      ? handleSubsequentCalls(nextState, nextOwnProps)
-      : handleFirstCall(nextState, nextOwnProps)
+    return hasRunAtLeastOnce // +++
+      ? handleSubsequentCalls(nextState, nextOwnProps) // +++
+      : handleFirstCall(nextState, nextOwnProps) // +++
   }
 }
 
@@ -203,6 +230,7 @@ export interface SelectorFactoryOptions<
 // allowing connect's shouldComponentUpdate to return false if final
 // props have not changed.
 
+// 最终属性选择器 // ++++++
 export default function finalPropsSelectorFactory<
   TStateProps,
   TOwnProps,
@@ -210,12 +238,13 @@ export default function finalPropsSelectorFactory<
   TMergedProps,
   State
 >(
-  dispatch: Dispatch<Action<unknown>>,
+  dispatch: Dispatch<Action<unknown>>, // ++++++ store.dispatch函数
+  // 准备好的selectorFactoryOptions对象 // +++
   {
     initMapStateToProps,
     initMapDispatchToProps,
     initMergeProps,
-    ...options
+    ...options // 其余的参数 // +++
   }: SelectorFactoryOptions<
     TStateProps,
     TOwnProps,
@@ -224,6 +253,8 @@ export default function finalPropsSelectorFactory<
     State
   >
 ) {
+
+  // 一一执行 // +++ 那么它们得到的返回值依然是一个函数 // +++
   const mapStateToProps = initMapStateToProps(dispatch, options)
   const mapDispatchToProps = initMapDispatchToProps(dispatch, options)
   const mergeProps = initMergeProps(dispatch, options)
@@ -232,11 +263,12 @@ export default function finalPropsSelectorFactory<
     verifySubselectors(mapStateToProps, mapDispatchToProps, mergeProps)
   }
 
+  // 纯最终属性选择器 // +++
   return pureFinalPropsSelectorFactory<
     TStateProps,
     TOwnProps,
     TDispatchProps,
     TMergedProps,
     State
-  >(mapStateToProps, mapDispatchToProps, mergeProps, dispatch, options)
+  >(mapStateToProps, mapDispatchToProps, mergeProps, dispatch /** +++ store.dispatch函数 +++ */, options /** 剩余的参数组成的对象 */)
 }

@@ -7,11 +7,18 @@ import type { uSESWS } from '../utils/useSyncExternalStore'
 import { notInitialized } from '../utils/useSyncExternalStore'
 
 let useSyncExternalStoreWithSelector = notInitialized as uSESWS
+
+// 初始化useSyncExternalStoreWithSelector
+// 将在src/index.ts中进行初始化 // +++
+// +++
+// 实际上就是react/packages/use-sync-external-store/src/useSyncExternalStoreWithSelector.js下的useSyncExternalStoreWithSelector函数
+// 注意和useSyncExternalStore是相同的，但是支持selector和isEqual参数 - 实际上它的内部就是使用了useSyncExternalStore hook
 export const initializeUseSelector = (fn: uSESWS) => {
   useSyncExternalStoreWithSelector = fn
 }
 
-const refEquality: EqualityFn<any> = (a, b) => a === b
+// +++
+const refEquality: EqualityFn<any> = (a, b) => a === b // +++
 
 /**
  * Hook factory, which creates a `useSelector` hook bound to a given context.
@@ -20,19 +27,22 @@ const refEquality: EqualityFn<any> = (a, b) => a === b
  * @returns {Function} A `useSelector` hook bound to the specified context.
  */
 export function createSelectorHook(
-  context = ReactReduxContext
+  context = ReactReduxContext // 要注意context的默认为ReactReduxContext！！！ // +++
 ): <TState = unknown, Selected = unknown>(
   selector: (state: TState) => Selected,
   equalityFn?: EqualityFn<Selected>
 ) => Selected {
+  // +++
+  // 
   const useReduxContext =
-    context === ReactReduxContext
-      ? useDefaultReduxContext
+    context === ReactReduxContext // 相等的
+      ? useDefaultReduxContext // +++ 就是这个了
       : () => useContext(context)
 
+  // 返回一个函数
   return function useSelector<TState, Selected extends unknown>(
-    selector: (state: TState) => Selected,
-    equalityFn: EqualityFn<NoInfer<Selected>> = refEquality
+    selector: (state: TState) => Selected, // 选择器
+    equalityFn: EqualityFn<NoInfer<Selected>> = refEquality // 相等函数默认为refEquality函数 // +++ 使用的就是 a === b
   ): Selected {
     if (process.env.NODE_ENV !== 'production') {
       if (!selector) {
@@ -48,18 +58,23 @@ export function createSelectorHook(
       }
     }
 
+    // src/hooks/useReduxContext.ts下的useReduxContext // +++
     const { store, subscription, getServerState } = useReduxContext()!
+    // Provider函数式组件中在Context.Provider传递的value对象
 
+    // 实际上就是react/packages/use-sync-external-store/src/useSyncExternalStoreWithSelector.js下的useSyncExternalStoreWithSelector函数
+    // 注意和useSyncExternalStore是相同的，但是支持selector和isEqual参数 - 实际上它的内部就是使用了useSyncExternalStore hook
     const selectedState = useSyncExternalStoreWithSelector(
-      subscription.addNestedSub,
-      store.getState,
+      subscription.addNestedSub, // 使用的是订阅对象的【增加嵌套订阅】函数 // +++
+      store.getState, // store对象的【获取状态】函数 // +++
       getServerState || store.getState,
-      selector,
-      equalityFn
+      selector, // 选择器函数 // +++
+      equalityFn // 相等函数 // +++
     )
 
     useDebugValue(selectedState)
 
+    // 返回已选择状态 // +++
     return selectedState
   }
 }
@@ -87,4 +102,5 @@ export function createSelectorHook(
  *   return <div>{counter}</div>
  * }
  */
-export const useSelector = /*#__PURE__*/ createSelectorHook()
+export const useSelector = /*#__PURE__*/ createSelectorHook() // 创建选择器hook // +++
+// undefined -> ReactReduxContext作为参数context啦 ~

@@ -19,7 +19,7 @@ import type { ReactReduxContextValue } from '../components/Context'
  * }
  */
 export function useReduxContext(): ReactReduxContextValue | null {
-  const contextValue = useContext(ReactReduxContext)
+  const contextValue = useContext(ReactReduxContext) // 使用useContext hook对src/components/Context.ts下的ReactReduxContext作为参数 // +++
 
   if (process.env.NODE_ENV !== 'production' && !contextValue) {
     throw new Error(
@@ -27,5 +27,7 @@ export function useReduxContext(): ReactReduxContextValue | null {
     )
   }
 
+  // 返回值 // +++
+  // Provider函数式组件中在Context.Provider传递的value对象
   return contextValue
 }
